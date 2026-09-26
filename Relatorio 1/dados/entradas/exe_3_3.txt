@@ -1,0 +1,8 @@
+tolerancia:1e-5
+max_iteracoes:100
+inf_10pct:1.0
+sup_10pct:2.0
+x0_10pct:0.5
+inf_90pct:5.0
+sup_90pct:9.0
+x0_90pct:2.5

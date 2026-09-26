@@ -1,0 +1,5 @@
+tolerancia:1e-6
+max_iteracoes:150
+limite_inferior:1.05
+limite_superior:1.30
+chute_inicial:1.12

@@ -1,0 +1,5 @@
+tolerancia:1e-4
+max_iteracoes:100
+inf_graus:30.0
+sup_graus:60.0
+x0_graus:55.0
