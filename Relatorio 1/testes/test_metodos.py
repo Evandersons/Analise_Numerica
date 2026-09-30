@@ -45,23 +45,24 @@ class TestSistemas(unittest.TestCase):
     b = [4.0, 11.0]
 
     def test_gauss_lu_jordan_com_pivo_zero(self):
-        # Substitua pelas chamadas exatas de Gauss, LU e Jordan do seu matrizes.py
-        try:
-            x_gauss = M.resolver_gauss(self.A, self.b)[0]
-            self.assertAlmostEqual(x_gauss[0], 1.0)
-            self.assertAlmostEqual(x_gauss[1], 2.0)
-        except AttributeError:
-            pass
+        # Testa Gauss, LU e Jordan de verdade com uma matriz que exige troca de linhas
+        x_gauss = M.resolver_gauss(self.A, self.b)[0]
+        self.assertAlmostEqual(x_gauss[0], 1.0)
+        self.assertAlmostEqual(x_gauss[1], 2.0)
+
+        x_lu = M.resolver_lu(self.A, self.b)[0]
+        self.assertAlmostEqual(x_lu[0], 1.0)
+        self.assertAlmostEqual(x_lu[1], 2.0)
+
+        x_jordan = M.resolver_jordan(self.A, self.b)[0]
+        self.assertAlmostEqual(x_jordan[0], 1.0)
+        self.assertAlmostEqual(x_jordan[1], 2.0)
 
     def test_inversa_e_condicao(self):
         A = [[2.0, 1.0], [1.0, 3.0]]
-        # Assumindo que obter_matriz_inversa existe
-        try:
-            inv = M.obter_matriz_inversa(A)
-            self.assertAlmostEqual(inv[0][0], 3 / 5)
-            self.assertAlmostEqual(inv[0][1], -1 / 5)
-        except AttributeError:
-            pass
+        inv = M.obter_matriz_inversa(A)
+        self.assertAlmostEqual(inv[0][0], 3 / 5)
+        self.assertAlmostEqual(inv[0][1], -1 / 5)
 
     def test_iterativos_batem_com_exato(self):
         A = [[20.0, -10.0, -4.0], [-10.0, 25.0, -5.0], [-4.0, -5.0, 20.0]]
