@@ -24,6 +24,10 @@ def executar_convergencia_circuito():
 
     print(f"\n=== EXECUÇÃO: {nome_script.upper()} (Circuito Iterativo) ===")
 
+    # Justificativa teórica de convergência para os iterativos
+    estrita, fraca = matrizes.dominancia_diagonal(A)
+    print(f" -> Convergência garantida (Critério das Linhas)? {'Sim' if estrita else 'Não (Critério falhou)'}")
+
     # Cálculo do número de condição
     try:
         cond_A = matrizes.numero_condicao(A)

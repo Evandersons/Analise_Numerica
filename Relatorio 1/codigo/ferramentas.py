@@ -1,18 +1,6 @@
 import os
 import csv
 
-def houve_troca_sinal(f, a, b):
-    """Verifica se a função muda de sinal entre os pontos a e b (Teorema de Bolzano)."""
-    # Pelo Teorema de Bolzano, se f(a) e f(b) têm sinais opostos, o produto entre eles
-    # é menor que zero (< 0), o que garante a existência de pelo menos uma raiz no intervalo.
-    return f(a) * f(b) < 0
-
-def calcular_derivada_numerica(f, x, passo=1e-5):
-    """Aproxima a derivada de f no ponto x usando diferenças finitas para frente."""
-    # Como nem sempre temos a derivada analítica explícita, usamos a inclinação
-    # da reta secante com um passo infinitesimal (delta x muito pequeno) para aproximá-la.
-    return (f(x + passo) - f(x)) / passo
-
 def exportar_dados_csv(caminho_arquivo, lista_dados, cabecalhos=None):
     """Salva a lista de dicionários do histórico em um arquivo .CSV estruturado."""
     # Se a lista estiver vazia, não há nada para salvar, então encerramos a função

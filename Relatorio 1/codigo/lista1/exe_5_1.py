@@ -27,6 +27,10 @@ def executar_modelo_laplace():
 
     print(f"\n=== EXECUÇÃO: {nome_script.upper()} (EDP Laplace 6x6) ===")
 
+    # Justificativa teórica de convergência para os iterativos
+    estrita, fraca = matrizes.dominancia_diagonal(A)
+    print(f" -> Convergência garantida (Critério das Linhas)? {'Sim' if estrita else 'Não (Critério falhou)'}")
+
     # Cálculo obrigatório do número de condição
     try:
         cond_A = matrizes.numero_condicao(A)

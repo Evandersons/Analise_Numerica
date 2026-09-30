@@ -144,6 +144,10 @@ def resolver_lu(A, b, usar_pivotamento=True, tol_pivo=1e-12):
 
 def resolver_jacobi(A, b, tolerancia=1e-6, max_iteracoes=100):
     n = len(A)
+    # Validação contra zeros na diagonal principal
+    if any(A[i][i] == 0 for i in range(n)):
+        raise ZeroDivisionError("Zero na diagonal principal. O método iterativo falhará.")
+        
     x_atual = [0.0] * n
     historico = []
 
@@ -169,8 +173,13 @@ def resolver_jacobi(A, b, tolerancia=1e-6, max_iteracoes=100):
                   f"(erro = {historico[-1]['erro']:.3e} > {tolerancia:.1e}).")
     return x_proximo, len(historico), historico
 
+
 def resolver_seidel(A, b, tolerancia=1e-6, max_iteracoes=100):
     n = len(A)
+    # Validação contra zeros na diagonal principal
+    if any(A[i][i] == 0 for i in range(n)):
+        raise ZeroDivisionError("Zero na diagonal principal. O método iterativo falhará.")
+        
     x = [0.0] * n
     historico = []
 
@@ -272,7 +281,3 @@ def numero_condicao(A, tol_pivo=1e-12):
     norma_A = norma_infinito_matriz(A)
     norma_A_inv = norma_infinito_matriz(A_inversa)
     return norma_A * norma_A_inv
-
-def escalar_linhas(A):
-    """Divide cada linha pelo seu maior valor absoluto."""
-    return [[v / max(abs(u) for u in linha) for v in linha] for linha in A]
