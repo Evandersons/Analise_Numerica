@@ -33,10 +33,14 @@ def executar_analise_termica():
     # Cálculo obrigatório do número de condição
     try:
         cond_A = matrizes.numero_condicao(A)
-        print(f" -> Número de Condição cond(A) [Norma Infinito]: {cond_A:.6f}")
+        A_escalonada = matrizes.escalar_linhas(A)
+        cond_A_escala = matrizes.numero_condicao(A_escalonada)
+        print(f" -> Número de Condição cond(A) [Sem Escala]: {cond_A:.6f}")
+        print(f" -> Número de Condição cond(A) [Com Escala]: {cond_A_escala:.6f}")
     except Exception as e:
         print(f"-> Erro ao calcular o condicionamento: {e}")
         cond_A = None
+        cond_A_escala = None
 
     # Comparamos um método direto robusto (Fatoração LU) com os iterativos (Jacobi e Seidel)
     rotinas = {
@@ -49,7 +53,8 @@ def executar_analise_termica():
         temps, fator, log = rotina()
         resultados.append({
             "Metodo": nome, "Esforco": fator,
-            "Temp_Borda(u1)": temps[0], "Temp_Centro(u5)": temps[4], "Cond_A": cond_A
+            "Temp_Borda(u1)": temps[0], "Temp_Centro(u5)": temps[4], 
+            "Cond_A_Bruta": cond_A, "Cond_A_Escalonada": cond_A_escala
         })
         ferramentas.exportar_dados_csv(os.path.join(pasta_saida, f"{nome_script}_{nome.lower()}.csv"), log)
 

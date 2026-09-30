@@ -12,7 +12,7 @@ def carregar_malha_probabilidade():
         [-1.0,  0.0,  0.0,  4.0, -1.0,  0.0, -1.0,  0.0,  0.0], # P4
         [ 0.0, -1.0,  0.0, -1.0,  4.0, -1.0,  0.0, -1.0,  0.0], # P5
         [ 0.0,  0.0, -1.0,  0.0, -1.0,  4.0,  0.0,  0.0, -1.0], # P6
-        [-1.0,  0.0,  0.0,  0.0,  0.0,  0.0,  4.0, -1.0,  0.0], # P7
+        [ 0.0,  0.0,  0.0, -1.0,  0.0,  0.0,  4.0, -1.0,  0.0], # P7
         [ 0.0,  0.0,  0.0,  0.0, -1.0,  0.0, -1.0,  4.0, -1.0], # P8
         [ 0.0,  0.0,  0.0,  0.0,  0.0, -1.0,  0.0, -1.0,  4.0]  # P9
     ]
@@ -32,10 +32,14 @@ def executar_probabilidades_labirinto():
     # 1. Cálculo obrigatório do número de condição
     try:
         cond_A = matrizes.numero_condicao(A)
-        print(f" -> Número de Condição cond(A) [Norma Infinito]: {cond_A:.6f}")
+        A_escalonada = matrizes.escalar_linhas(A)
+        cond_A_escala = matrizes.numero_condicao(A_escalonada)
+        print(f" -> Número de Condição cond(A) [Sem Escala]: {cond_A:.6f}")
+        print(f" -> Número de Condição cond(A) [Com Escala]: {cond_A_escala:.6f}")
     except Exception as e:
         print(f"-> Erro ao calcular o condicionamento: {e}")
         cond_A = None
+        cond_A_escala = None
 
     # Resolvemos o sistema esparso por métodos diretos (Eliminação de Gauss e Fatoração LU)
     rotinas = {
@@ -45,7 +49,7 @@ def executar_probabilidades_labirinto():
 
     for nome, rotina in rotinas.items():
         vetor_prob, passos, log = rotina()
-        res = {"Metodo": nome, "Passos": passos, "Cond_A": cond_A}
+        res = {"Metodo": nome, "Passos": passos, "Cond_A_Bruta": cond_A, "Cond_A_Escalonada": cond_A_escala}
         for i, val in enumerate(vetor_prob):
             res[f"No_{i+1}"] = val
         resultados.append(res)

@@ -30,14 +30,19 @@ def executar_analise_escada():
     # Calculo o número de condição exigido para avaliar o sistema linear
     try:
         cond_A = matrizes.numero_condicao(A)
-        print(f" -> Número de Condição cond(A) [Norma Infinito]: {cond_A:.6f}")
+        A_escalonada = matrizes.escalar_linhas(A)
+        cond_A_escala = matrizes.numero_condicao(A_escalonada)
+        print(f" -> Número de Condição cond(A) [Sem Escala]: {cond_A:.6f}")
+        print(f" -> Número de Condição cond(A) [Com Escala]: {cond_A_escala:.6f}")
     except Exception as e:
         print(f"-> Erro ao calcular o condicionamento: {e}")
         cond_A = None
+        cond_A_escala = None
 
     # 1. Atendo à alínea específica que pede o cálculo direto usando a Matriz Inversa (x = A^(-1) * b)
     inversa_A = matrizes.obter_matriz_inversa(A)
     vetor_x_inversa = multiplicar_matriz_vetor(inversa_A, b)
+    vetor_x_inversa = [x + 0.0 for x in vetor_x_inversa] # Remove -0.0
     
     print(f"-> Resolução por A^(-1) * b: Ix (Corrente 3) = {vetor_x_inversa[2]:.4f} A\n")
 
@@ -49,8 +54,10 @@ def executar_analise_escada():
 
     for nome, rotina in rotinas.items():
         vetor_i, passos, log = rotina()
+        vetor_i = [x + 0.0 for x in vetor_i] # Remove -0.0
         resultados.append({
-            "Metodo": nome, "I1": vetor_i[0], "I2": vetor_i[1], "Ix": vetor_i[2], "Cond_A": cond_A
+            "Metodo": nome, "I1": vetor_i[0], "I2": vetor_i[1], "Ix": vetor_i[2], 
+            "Cond_A_Bruta": cond_A, "Cond_A_Escalonada": cond_A_escala
         })
         ferramentas.exportar_dados_csv(os.path.join(pasta_saida, f"{nome_script}_{nome.lower()}.csv"), log)
 

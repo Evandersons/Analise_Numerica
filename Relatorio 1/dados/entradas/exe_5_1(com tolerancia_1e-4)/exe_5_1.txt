@@ -1,2 +1,2 @@
-tolerancia:5e-5
+tolerancia:1e-4
 max_iteracoes:100
