@@ -1,3 +1,15 @@
+import warnings
+
+def escalar_linhas(A):
+    """Divide cada linha pelo seu maior valor absoluto."""
+    return [[v / max(abs(u) for u in linha) for v in linha] for linha in A]
+
+def dominancia_diagonal(A):
+    """Verifica a dominância diagonal estrita e fraca."""
+    estrita = all(abs(A[i][i]) > sum(abs(A[i][j]) for j in range(len(A)) if j != i) for i in range(len(A)))
+    fraca = all(abs(A[i][i]) >= sum(abs(A[i][j]) for j in range(len(A)) if j != i) for i in range(len(A)))
+    return estrita, fraca
+
 def validar_dimensoes(A, b):
     # Confiro se A é quadrada e se b tem o mesmo tamanho antes de qualquer conta.
     # Evita um erro lá no meio do algoritmo por causa de dimensão errada.
@@ -130,69 +142,57 @@ def resolver_lu(A, b, usar_pivotamento=True, tol_pivo=1e-12):
     return vetor_x, total_etapas, historico
 
 
-def resolver_jacobi(A, b, tolerancia=1e-5, max_iteracoes=100, x_inicial=None):
-    # Jacobi: método iterativo. Em cada rodada, calculo TODOS os x novos usando
-    # só os valores da rodada anterior — nunca misturo um x novo no meio da mesma rodada.
-    # É o mais fácil de paralelizar, mas costuma convergir mais devagar que o Seidel.
-    validar_dimensoes(A, b)
+def resolver_jacobi(A, b, tolerancia=1e-6, max_iteracoes=100):
     n = len(A)
-    x_atual = x_inicial[:] if x_inicial else [0.0] * n
-    x_proximo = [0.0] * n
+    x_atual = [0.0] * n
     historico = []
 
     for k in range(1, max_iteracoes + 1):
+        x_proximo = [0.0] * n
         for i in range(n):
-            # isolo x_i na equação i, usando os OUTROS x's, todos da iteração anterior
-            soma_termos = sum(A[i][j] * x_atual[j] for j in range(n) if j != i)
-            if abs(A[i][i]) == 0.0:
-                raise ValueError(f"Diagonal principal nula na linha {i}.")
-            x_proximo[i] = (b[i] - soma_termos) / A[i][i]
+            soma = sum(A[i][j] * x_atual[j] for j in range(n) if j != i)
+            x_proximo[i] = (b[i] - soma) / A[i][i]
 
-        # erro relativo: maior diferença entre as duas rodadas, dividido pelo maior x atual
-        erro_absoluto_max = max(abs(x_proximo[i] - x_atual[i]) for i in range(n))
-        maior_elemento_x = max(abs(v) for v in x_proximo)
-        erro_relativo = erro_absoluto_max / maior_elemento_x if maior_elemento_x != 0 else erro_absoluto_max
+        erro = max(abs(x_proximo[i] - x_atual[i]) for i in range(n))
+        max_x = max(abs(xi) for xi in x_proximo)
+        if max_x != 0:
+            erro /= max_x
 
-        historico.append({'iteracao': k, 'vetor_x': x_proximo[:], 'erro': erro_relativo})
+        historico.append({'iteracao': k, 'x': x_proximo.copy(), 'erro': erro})
 
-        if erro_relativo < tolerancia:
+        if erro < tolerancia:
             return x_proximo, k, historico
+            
+        x_atual = x_proximo
 
-        x_atual = x_proximo[:]  # só agora os valores novos passam a valer pra próxima rodada
+    warnings.warn(f"Jacobi não convergiu em {max_iteracoes} iterações "
+                  f"(erro = {historico[-1]['erro']:.3e} > {tolerancia:.1e}).")
+    return x_proximo, len(historico), historico
 
-    return x_proximo, max_iteracoes, historico
-
-
-def resolver_seidel(A, b, tolerancia=1e-5, max_iteracoes=100, x_inicial=None):
-    # Gauss-Seidel: quase igual ao Jacobi, mas uso o valor novo de x[j] assim que
-    # ele fica pronto (em vez de esperar a rodada toda acabar, como no Jacobi).
-    # Normalmente converge mais rápido justamente por causa disso.
-    validar_dimensoes(A, b)
+def resolver_seidel(A, b, tolerancia=1e-6, max_iteracoes=100):
     n = len(A)
-    x = list(x_inicial) if x_inicial else [0.0] * n
+    x = [0.0] * n
     historico = []
 
     for k in range(1, max_iteracoes + 1):
-        x_anterior = list(x)  # guardo o estado de antes da rodada só pra medir o erro depois
-
+        x_anterior = x.copy()
         for i in range(n):
-            # aqui x[j] já pode ser o valor NOVO se j < i (atualizado nesta mesma rodada,
-            # é essa a diferença central em relação ao Jacobi)
-            soma_termos = sum(A[i][j] * x[j] for j in range(n) if j != i)
-            if abs(A[i][i]) == 0.0:
-                raise ValueError(f"Diagonal principal nula na linha {i}.")
-            x[i] = (b[i] - soma_termos) / A[i][i]
+            soma = sum(A[i][j] * x[j] for j in range(n) if j != i)
+            x[i] = (b[i] - soma) / A[i][i]
 
-        erro_absoluto_max = max(abs(x[i] - x_anterior[i]) for i in range(n))
-        maior_elemento_x = max(abs(v) for v in x)
-        erro_relativo = erro_absoluto_max / maior_elemento_x if maior_elemento_x != 0 else erro_absoluto_max
+        erro = max(abs(x[i] - x_anterior[i]) for i in range(n))
+        max_x = max(abs(xi) for xi in x)
+        if max_x != 0:
+            erro /= max_x
 
-        historico.append({'iteracao': k, 'vetor_x': list(x), 'erro': erro_relativo})
+        historico.append({'iteracao': k, 'x': x.copy(), 'erro': erro})
 
-        if erro_relativo < tolerancia:
+        if erro < tolerancia:
             return x, k, historico
 
-    return x, max_iteracoes, historico
+    warnings.warn(f"Gauss-Seidel não convergiu em {max_iteracoes} iterações "
+                  f"(erro = {historico[-1]['erro']:.3e} > {tolerancia:.1e}).")
+    return x, len(historico), historico
 
 
 def resolver_jordan(A, b, usar_pivotamento=True, tol_pivo=1e-12):
@@ -272,3 +272,7 @@ def numero_condicao(A, tol_pivo=1e-12):
     norma_A = norma_infinito_matriz(A)
     norma_A_inv = norma_infinito_matriz(A_inversa)
     return norma_A * norma_A_inv
+
+def escalar_linhas(A):
+    """Divide cada linha pelo seu maior valor absoluto."""
+    return [[v / max(abs(u) for u in linha) for v in linha] for linha in A]

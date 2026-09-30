@@ -27,10 +27,14 @@ def executar_convergencia_circuito():
     # Cálculo do número de condição
     try:
         cond_A = matrizes.numero_condicao(A)
-        print(f" -> Número de Condição cond(A) [Norma Infinito]: {cond_A:.6f}")
+        A_escalonada = matrizes.escalar_linhas(A)
+        cond_A_escala = matrizes.numero_condicao(A_escalonada)
+        print(f" -> Número de Condição cond(A) [Sem Escala]: {cond_A:.6f}")
+        print(f" -> Número de Condição cond(A) [Com Escala]: {cond_A_escala:.6f}")
     except Exception as e:
         print(f"-> Erro ao calcular o condicionamento: {e}")
         cond_A = None
+        cond_A_escala = None
 
     # Analisamos a convergência cruzando o método exato de Gauss com os iterativos Jacobi e Seidel
     rotinas = {
@@ -43,7 +47,8 @@ def executar_convergencia_circuito():
         correntes, fator, log = rotina()
         resultados.append({
             "Metodo": nome, "Esforco": fator,
-            "i1": correntes[0], "i2": correntes[1], "i3": correntes[2], "Cond_A": cond_A
+            "i1": correntes[0], "i2": correntes[1], "i3": correntes[2], 
+            "Cond_A_Bruta": cond_A, "Cond_A_Escalonada": cond_A_escala
         })
         ferramentas.exportar_dados_csv(os.path.join(pasta_saida, f"{nome_script}_{nome.lower()}.csv"), log)
 

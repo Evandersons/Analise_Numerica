@@ -30,10 +30,14 @@ def executar_modelo_laplace():
     # Cálculo obrigatório do número de condição
     try:
         cond_A = matrizes.numero_condicao(A)
-        print(f" -> Número de Condição cond(A) [Norma Infinito]: {cond_A:.6f}")
+        A_escalonada = matrizes.escalar_linhas(A)
+        cond_A_escala = matrizes.numero_condicao(A_escalonada)
+        print(f" -> Número de Condição cond(A) [Sem Escala]: {cond_A:.6f}")
+        print(f" -> Número de Condição cond(A) [Com Escala]: {cond_A_escala:.6f}")
     except Exception as e:
         print(f"-> Erro ao calcular o condicionamento: {e}")
         cond_A = None
+        cond_A_escala = None
 
     # Comparamos um método direto de precisão (Gauss-Jordan) com os métodos iterativos do Capítulo 5
     rotinas = {
@@ -44,7 +48,7 @@ def executar_modelo_laplace():
 
     for nome, rotina in rotinas.items():
         solucao, fator_temporal, log = rotina()
-        res = {"Metodo": nome, "Iteracoes_Ou_Passos": fator_temporal, "Cond_A": cond_A}
+        res = {"Metodo": nome, "Iteracoes_Ou_Passos": fator_temporal, "Cond_A_Bruta": cond_A, "Cond_A_Escalonada": cond_A_escala}
         for idx, val in enumerate(solucao):
             res[f"X_{idx+1}"] = val
         resultados.append(res)

@@ -1,24 +1,47 @@
-from codigo import ferramentas
+import warnings
+
+
+def _erro_relativo(x_novo, x_antigo):
+    # Critério de parada ÚNICO para os quatro métodos: |x_k - x_(k-1)| / |x_k|.
+    # Se a raiz for 0, cai para o erro absoluto (evita divisão por zero).
+    if x_antigo is None:
+        return float('inf')  # 1ª iteração dos métodos de intervalo: ainda não há x anterior
+    if x_novo != 0.0:
+        return abs(x_novo - x_antigo) / abs(x_novo)
+    return abs(x_novo - x_antigo)
+
+
+def _validar_intervalo(f, a, b):
+    """Confere o Teorema de Bolzano. Devolve (f(a), f(b), raiz_exata_ou_None)."""
+    if a >= b:
+        raise ValueError(f"Intervalo inválido: limite_inf={a} deve ser menor que limite_sup={b}.")
+    fa, fb = f(a), f(b)
+    # raiz exatamente num extremo: f(a)*f(b) < 0 daria falso, então trato antes
+    if fa == 0.0:
+        return fa, fb, a
+    if fb == 0.0:
+        return fa, fb, b
+    if fa * fb > 0:
+        raise ValueError(f"Sem troca de sinal em [{a}, {b}]: f(a)={fa:.6g}, f(b)={fb:.6g}. "
+                         "Não há garantia de raiz no intervalo.")
+    return fa, fb, None
 
 
 def metodo_bisseccao(f, limite_inf, limite_sup, tolerancia=1e-6, max_iteracoes=100):
-    # Bissecção: fico dividindo o intervalo [a, b] ao meio e guardo sempre
-    # o lado onde sei que tem troca de sinal (é lá que está a raiz, pelo Bolzano).
-    # É o método mais simples e o que menos falha, mas também o mais lento.
+    # Bissecção: divido [a, b] ao meio e fico com o lado onde há troca de sinal.
+    # Convenção deste módulo: k = 1, 2, 3... = número de iterações realizadas.
+    fa, fb, raiz_exata = _validar_intervalo(f, limite_inf, limite_sup)
+    if raiz_exata is not None:
+        return raiz_exata, 0, []
+
     relatorio = []
+    x_anterior = None
 
-    for k in range(max_iteracoes):
-        x_medio = (limite_inf + limite_sup) / 2.0  # ponto médio do intervalo atual
+    for k in range(1, max_iteracoes + 1):
+        x_medio = (limite_inf + limite_sup) / 2.0
         f_medio = f(x_medio)
+        erro = 0.0 if f_medio == 0.0 else _erro_relativo(x_medio, x_anterior)
 
-        # erro relativo usando o próprio x_medio como referência
-        # (evita dividir por zero quando o intervalo cruza x = 0)
-        if x_medio != 0.0:
-            erro = abs((limite_sup - limite_inf) / x_medio)
-        else:
-            erro = abs(limite_sup - limite_inf)
-
-        # guardo tudo pra poder montar a tabela de iterações na apresentação
         relatorio.append({
             'iteracao': k,
             'lim_inf': limite_inf,
@@ -28,40 +51,37 @@ def metodo_bisseccao(f, limite_inf, limite_sup, tolerancia=1e-6, max_iteracoes=1
             'erro_relativo': erro
         })
 
-        # se caí certinho na raiz ou já bati a tolerância pedida, paro aqui
         if f_medio == 0.0 or erro < tolerancia:
             return x_medio, k, relatorio
 
-        # decido de que lado do intervalo a raiz está: se f(lim_inf) e f(x_medio)
-        # têm sinais opostos, a raiz está entre eles; senão, está no outro lado
-        if ferramentas.houve_troca_sinal(f, limite_inf, x_medio):
-            limite_sup = x_medio  # raiz entre limite_inf e x_medio
+        # guardo f nos extremos para não reavaliar a função à toa
+        if fa * f_medio < 0:
+            limite_sup, fb = x_medio, f_medio
         else:
-            limite_inf = x_medio  # raiz entre x_medio e limite_sup
+            limite_inf, fa = x_medio, f_medio
+        x_anterior = x_medio
 
-    # se não convergiu dentro do número máximo de iterações, devolvo o melhor valor achado
-    return x_medio, max_iteracoes, relatorio
+    warnings.warn(f"Bissecção não convergiu em {max_iteracoes} iterações "
+                  f"(erro relativo = {erro:.3e} > {tolerancia:.1e}).")
+    return x_medio, len(relatorio), relatorio
 
 
 def metodo_falsa_posicao(f, limite_inf, limite_sup, tolerancia=1e-6, max_iteracoes=100):
-    # Falsa Posição: em vez de partir sempre no meio do intervalo (como na bissecção),
-    # traço a reta que liga (a, f(a)) a (b, f(b)) e uso o ponto onde ela cruza o eixo x.
-    # Na prática costuma convergir bem mais rápido, porque "mira" melhor na raiz.
+    # Falsa Posição (clássica): usa o ponto onde a reta que liga (a,f(a)) a (b,f(b))
+    # cruza o eixo x. Um dos extremos pode ficar "preso", por isso o intervalo
+    # não encolhe até zero e o critério de parada é o de x_k vs x_(k-1).
+    fa, fb, raiz_exata = _validar_intervalo(f, limite_inf, limite_sup)
+    if raiz_exata is not None:
+        return raiz_exata, 0, []
+
     relatorio = []
+    x_anterior = None
 
-    for k in range(max_iteracoes):
-        # x da iteração anterior, pra medir o quanto a aproximação mudou
-        x_anterior = relatorio[-1]['x_aprox'] if relatorio else limite_inf
-
-        f_inf = f(limite_inf)
-        f_sup = f(limite_sup)
-
-        # fórmula da secante geométrica: onde a reta que une os dois pontos cruza y=0
-        x_aprox = limite_sup - (f_sup * (limite_inf - limite_sup)) / (f_inf - f_sup)
+    for k in range(1, max_iteracoes + 1):
+        # fa e fb têm sinais opostos (garantido pela validação), então fa - fb != 0
+        x_aprox = (limite_inf * fb - limite_sup * fa) / (fb - fa)
         f_aprox = f(x_aprox)
-
-        # erro relativo entre a aproximação atual e a anterior
-        erro = abs(x_aprox - x_anterior) / abs(x_aprox) if x_aprox != 0.0 else 0.0
+        erro = 0.0 if f_aprox == 0.0 else _erro_relativo(x_aprox, x_anterior)
 
         relatorio.append({
             'iteracao': k,
@@ -75,20 +95,19 @@ def metodo_falsa_posicao(f, limite_inf, limite_sup, tolerancia=1e-6, max_iteraco
         if f_aprox == 0.0 or erro < tolerancia:
             return x_aprox, k, relatorio
 
-        # mesma lógica da bissecção pra atualizar o intervalo, só que usando x_aprox
-        # em vez do ponto médio — por isso essa é a versão "clássica" (não a modificada)
-        if ferramentas.houve_troca_sinal(f, limite_inf, x_aprox):
-            limite_sup = x_aprox
+        if fa * f_aprox < 0:
+            limite_sup, fb = x_aprox, f_aprox
         else:
-            limite_inf = x_aprox
+            limite_inf, fa = x_aprox, f_aprox
+        x_anterior = x_aprox
 
-    return x_aprox, max_iteracoes, relatorio
+    warnings.warn(f"Falsa Posição não convergiu em {max_iteracoes} iterações "
+                  f"(erro relativo = {erro:.3e} > {tolerancia:.1e}).")
+    return x_aprox, len(relatorio), relatorio
 
 
 def metodo_newton_raphson(f, f_linha, x_inicial, tolerancia=1e-6, max_iteracoes=100):
-    # Newton-Raphson: uso a reta TANGENTE à curva no ponto atual e vejo onde ela
-    # cruza o eixo x. Converge muito mais rápido que os métodos anteriores, mas
-    # preciso saber a derivada exata (f_linha é passada de fora, não é aproximada).
+    # Newton-Raphson: x_(k+1) = x_k - f(x_k)/f'(x_k), com f' analítica passada de fora.
     relatorio = []
     x_atual = x_inicial
 
@@ -96,57 +115,51 @@ def metodo_newton_raphson(f, f_linha, x_inicial, tolerancia=1e-6, max_iteracoes=
         f_x = f(x_atual)
         derivada = f_linha(x_atual)
 
-        # se a derivada zera, a tangente fica horizontal e o método trava
-        # (dividiria por zero) — melhor parar aqui do que quebrar o programa
         if derivada == 0.0:
-            print("-> Parada de Segurança: A derivada se anulou. Evitando divisão por zero.")
-            break
+            warnings.warn(f"Newton parou na iteração {k}: f'({x_atual}) = 0 (tangente horizontal).")
+            return x_atual, len(relatorio), relatorio
 
-        # a fórmula do método em si: x_(k+1) = x_k - f(x_k) / f'(x_k)
-        x_proximo = x_atual - (f_x / derivada)
-
-        erro = abs(x_proximo - x_atual) / abs(x_proximo) if x_proximo != 0.0 else abs(x_proximo - x_atual)
+        x_proximo = x_atual - f_x / derivada
+        f_proximo = f(x_proximo)
+        erro = _erro_relativo(x_proximo, x_atual)
 
         relatorio.append({
             'iteracao': k,
             'x_aprox': x_proximo,
-            'f(x)': f(x_proximo),
+            'f(x)': f_proximo,
             'f_linha(x)': derivada,
             'erro_relativo': erro
         })
 
-        if f(x_proximo) == 0.0 or erro < tolerancia:
+        if f_proximo == 0.0 or erro < tolerancia:
             return x_proximo, k, relatorio
 
         x_atual = x_proximo
 
-    # se a derivada zerou no meio do caminho, devolvo o último x válido em vez de quebrar
-    return x_atual, max_iteracoes, relatorio
+    warnings.warn(f"Newton não convergiu em {max_iteracoes} iterações "
+                  f"(erro relativo = {erro:.3e} > {tolerancia:.1e}).")
+    return x_atual, len(relatorio), relatorio
 
 
 def metodo_secante(f, x0, x1, tolerancia=1e-6, max_iteracoes=100):
-    # Secante: a ideia é a mesma do Newton-Raphson, mas troco a derivada exata
-    # por uma reta que passa pelos DOIS últimos pontos calculados (x0 e x1).
-    # Assim não preciso saber f'(x) — útil quando a derivada é difícil de obter.
+    # Secante: como o Newton, mas a derivada vira a inclinação da reta pelos
+    # dois últimos pontos. Não exige troca de sinal, só dois chutes distintos.
+    if x0 == x1:
+        raise ValueError("Secante precisa de dois pontos iniciais distintos (x0 != x1).")
+
     relatorio = []
-    x_proximo = x1  # valor de segurança: se o método parar já na 1ª iteração, tem o que devolver
+    x_proximo = x1
+    f_x0, f_x1 = f(x0), f(x1)
 
     for k in range(1, max_iteracoes + 1):
-        f_x0 = f(x0)
-        f_x1 = f(x1)
-
         variacao_y = f_x1 - f_x0
         if variacao_y == 0.0:
-            # a reta secante ficou horizontal (f(x0) == f(x1)) — não dá pra continuar
-            print("-> Parada de Segurança: A função achatou. A secante tornou-se horizontal.")
-            break
+            warnings.warn(f"Secante parou na iteração {k}: f(x0) == f(x1) (reta horizontal).")
+            return x_proximo, len(relatorio), relatorio
 
-        # mesma fórmula do Newton, só que a "derivada" vira a inclinação da reta
-        # que liga os dois últimos pontos em vez de uma derivada de verdade
         x_proximo = x1 - f_x1 * (x1 - x0) / variacao_y
         f_proximo = f(x_proximo)
-
-        erro = abs(x_proximo - x1) / abs(x_proximo) if x_proximo != 0.0 else abs(x_proximo - x1)
+        erro = _erro_relativo(x_proximo, x1)
 
         relatorio.append({
             'iteracao': k,
@@ -158,9 +171,10 @@ def metodo_secante(f, x0, x1, tolerancia=1e-6, max_iteracoes=100):
         if f_proximo == 0.0 or erro < tolerancia:
             return x_proximo, k, relatorio
 
-        # "desliza" a janela dos dois pontos: descarto o mais antigo (x0),
-        # o que era x1 vira o novo x0, e o ponto recém-calculado vira o novo x1
-        x0 = x1
-        x1 = x_proximo
+        # desliza a janela e reaproveita f já calculado (1 avaliação nova por iteração)
+        x0, f_x0 = x1, f_x1
+        x1, f_x1 = x_proximo, f_proximo
 
-    return x_proximo, max_iteracoes, relatorio
+    warnings.warn(f"Secante não convergiu em {max_iteracoes} iterações "
+                  f"(erro relativo = {erro:.3e} > {tolerancia:.1e}).")
+    return x_proximo, len(relatorio), relatorio

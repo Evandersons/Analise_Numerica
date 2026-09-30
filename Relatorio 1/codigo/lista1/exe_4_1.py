@@ -8,7 +8,7 @@ def carregar_modelo_eletrico():
     # Monto o sistema 3x3 com base nas Leis de Kirchhoff aplicadas as malhas do circuito
     matriz_resistencias = [
         [ 8.0, -4.0, -2.0],
-        [-4.0,  6.0, -2.0],
+        [-4.0, 10.0, -2.0],
         [-2.0, -2.0, 10.0]
     ]
     vetor_tensoes = [10.0, 0.0, 4.0]
@@ -29,10 +29,14 @@ def executar_analise_malhas():
     # para medir a sensibilidade e estabilidade numérica deste circuito
     try:
         cond_A = matrizes.numero_condicao(A)
-        print(f" -> Número de Condição cond(A) [Norma Infinito]: {cond_A:.6f}")
+        A_escalonada = matrizes.escalar_linhas(A)
+        cond_A_escala = matrizes.numero_condicao(A_escalonada)
+        print(f" -> Número de Condição cond(A) [Sem Escala]: {cond_A:.6f}")
+        print(f" -> Número de Condição cond(A) [Com Escala]: {cond_A_escala:.6f}")
     except Exception as e:
         print(f"-> Erro ao calcular o condicionamento: {e}")
         cond_A = None
+        cond_A_escala = None
 
     # Agrupo os métodos diretos que vamos comparar para resolver as correntes
     rotinas_diretas = {
@@ -46,7 +50,7 @@ def executar_analise_malhas():
             resultados.append({
                 "Metodo": nome, "Corrente_1": vetor_corrente[0], 
                 "Corrente_2": vetor_corrente[1], "Corrente_3": vetor_corrente[2], 
-                "Passos": passos, "Cond_A": cond_A
+                "Passos": passos, "Cond_A_Bruta": cond_A, "Cond_A_Escalonada": cond_A_escala
             })
             # Salvo o passo a passo detalhado em CSV para constar no relatório
             ferramentas.exportar_dados_csv(os.path.join(pasta_saida, f"{nome_script}_{nome.replace(' ', '').lower()}.csv"), log)
